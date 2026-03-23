@@ -413,12 +413,12 @@
                 if (subId) {
                     // sub-forum: parameter sub_id
                     localStorage.setItem('indexScrollY', String(window.scrollY));
-                    const url = `topics?sub_id=${encodeURIComponent(subId)}`;
+                    const url = `Topics.html?sub_id=${encodeURIComponent(subId)}`;
                     window.location.href = url;
                 } else if (forumId) {
                     // forum (no sub-forums): parameter forum_id
                     localStorage.setItem('indexScrollY', String(window.scrollY));
-                    const url = `topics?forum_id=${encodeURIComponent(forumId)}`;
+                    const url = `Topics.html?forum_id=${encodeURIComponent(forumId)}`;
                     window.location.href = url;
                 } else {
                     const href = btn.getAttribute('data-href');
