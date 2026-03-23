@@ -1,0 +1,16 @@
+{
+  "manifest_version": 3,
+  "name": "ICN Forum Topics Scraper",
+  "version": "1.0.0",
+  "description": "Scrape topic list from every ICN forum and export as JSON",
+  "permissions": ["storage"],
+  "host_permissions": ["https://forum.ic-network.com/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Scrape ICN Topics"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}
+

@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IC Network Forum Directory</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Helvetica, Arial, Verdana, sans-serif;
+            background: #fbfaf7;
+            min-height: 100vh;
+            color: #2b2b2b;
+        }
+
+        .container {
+            max-width: 920px;
+            margin: 40px auto;
+            padding: 28px;
+            background: #fffefb;
+            box-shadow: 0 20px 50px rgba(20,20,30,0.12);
+            border-radius: 10px;
+            border: 1px solid rgba(0,0,0,0.04);
+        }
+
+        .header {
+            text-align: left;
+            margin-bottom: 28px;
+            color: #1f2937;
+        }
+
+        .header h1 {
+            font-size: 2.4rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            font-size: 1rem;
+            opacity: 0.85;
+            color: #4b5563;
+        }
+
+        .forums-list {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .forum-item {
+            background: transparent;
+            border-radius: 6px;
+            overflow: visible;
+            margin-bottom: 18px;
+            padding-bottom: 0;
+        }
+
+        .forum-divider {
+            height: 1px;
+            background: linear-gradient(90deg, rgba(20,20,30,0.02), rgba(20,20,30,0.06), rgba(20,20,30,0.02));
+            margin: 18px 0 22px 0;
+        }
+
+        .forum-header {
+            padding: 8px 0 6px 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: baseline;
+        }
+
+        .forum-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: #111827;
+            flex: 1;
+            line-height: 1.25;
+        }
+
+        .forum-content {
+            padding: 8px 0 18px 0;
+            max-height: none;
+            overflow: visible;
+            color: #374151;
+            font-size: 0.98rem;
+        }
+
+        .last-post {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 6px 0;
+        }
+
+        .last-post .last-post-title {
+            font-weight: 600;
+            color: #111827;
+            font-size: 0.98rem;
+        }
+
+        .last-post .last-post-meta {
+            font-size: 0.9rem;
+            color: #6b7280;
+            margin-top: 2px;
+        }
+
+        .last-post-action button {
+            background: #2b6cb0;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 6px 16px rgba(44,82,130,0.12);
+        }
+
+
+        .sub-forums {
+            margin-top: 10px;
+        }
+
+        .sub-forum-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .sub-forum-item:last-child {
+            border-bottom: none;
+        }
+
+        .sub-forum-title {
+            font-size: 0.98rem;
+            color: #111827;
+            flex: 1;
+            font-weight: 600;
+        }
+
+        .sub-forum-counts {
+            font-size: 0.9rem;
+            color: #666;
+            background: #f8f9fa;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+
+        .sub-open-btn {
+            background: #2b6cb0;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            box-shadow: 0 6px 16px rgba(44,82,130,0.14);
+        }
+
+        .sub-open-btn:hover { transform: translateY(-1px); }
+
+        .open-btn {
+            display: inline-block;
+            background: linear-gradient(180deg,#2b6cb0,#2c5282);
+            color: white;
+            padding: 8px 14px;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.92rem;
+            box-shadow: 0 6px 18px rgba(44,82,130,0.18);
+        }
+
+        .open-btn:hover { transform: translateY(-2px); }
+
+        .no-subforums {
+            padding: 20px;
+            text-align: center;
+            color: #666;
+        }
+
+        .no-subforums a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        .no-subforums a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 768px) {
+            .container { padding: 15px; }
+            .header h1 { font-size: 1.6rem; }
+            .forum-title { font-size: 1rem; }
+            .sub-forum-title { font-size: 0.95rem; }
+        }
+
+        .loading {
+            text-align: center;
+            padding: 60px;
+            color: white;
+            font-size: 1.2rem;
+        }
+
+        .scroll-top-btn {
+            position: fixed;
+            right: 20px;
+            bottom: 24px;
+            z-index: 999;
+            border: none;
+            border-radius: 50px;
+            background: #2b6cb0;
+            color: #fff;
+            width: 45px;
+            height: 45px;
+            font-size: 1rem;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 10px 18px rgba(0,0,0,0.22);
+        }
+
+        .scroll-top-btn:hover { transform: translateY(-1px); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>IC Network Forum Directory</h1>
+            <p>Explore all forums and sub-forums in the Interstitial Cystitis community</p>
+        </div>
+
+        <div id="loading" class="loading">
+            Loading forum list...
+        </div>
+
+        <div class="forums-list" id="forumsList">
+            <!-- Forum items will be populated here -->
+        </div>
+    </div>
+
+    <script>
+        let forums = [];
+        const scrollTopBtn = document.createElement('button');
+        scrollTopBtn.id = 'scrollToTopBtn';
+        scrollTopBtn.className = 'scroll-top-btn';
+        scrollTopBtn.title = 'Scroll to top';
+        scrollTopBtn.innerText = '↑';
+        document.body.appendChild(scrollTopBtn);
+
+        window.addEventListener('scroll', () => {
+            if (window.scrollY > 220) {
+                scrollTopBtn.style.display = 'flex';
+            } else {
+                scrollTopBtn.style.display = 'none';
+            }
+        });
+
+        scrollTopBtn.addEventListener('click', () => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+        let subForums = [];
+        let forumSubForumsMap = {};
+
+        async function loadData() {
+            try {
+                const [forumsResponse, subForumsResponse] = await Promise.all([
+                    fetch('Data/forum.json'),
+                    fetch('Data/sub-forum.json')
+                ]);
+
+                forums = await forumsResponse.json();
+                subForums = await subForumsResponse.json();
+
+                // Group sub-forums by parent forum
+                forumSubForumsMap = {};
+                subForums.forEach(subForum => {
+                    if (!forumSubForumsMap[subForum.forum_id]) {
+                        forumSubForumsMap[subForum.forum_id] = [];
+                    }
+                    forumSubForumsMap[subForum.forum_id].push(subForum);
+                });
+
+                renderForums();
+                const restoreY = parseInt(localStorage.getItem('indexScrollY') || '0', 10);
+                if (restoreY > 0) {
+                    window.scrollTo(0, restoreY);
+                    localStorage.removeItem('indexScrollY');
+                }
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.getElementById('loading').innerHTML = 'Error loading forum data. Please check the console for details.';
+            }
+        }
+
+        function renderForums() {
+            const list = document.getElementById('forumsList');
+            list.innerHTML = '';
+
+            forums.forEach((forum, idx) => {
+                const item = createForumItem(forum);
+                list.appendChild(item);
+                // add divider between forums (except after last)
+                if (idx < forums.length - 1) {
+                    const divider = document.createElement('div');
+                    divider.className = 'forum-divider';
+                    list.appendChild(divider);
+                }
+            });
+        }
+
+        function createForumItem(forum) {
+            const container = document.createElement('div');
+            container.className = 'forum-item';
+
+            const header = document.createElement('div');
+            header.className = 'forum-header';
+            header.innerHTML = `
+                <div class="forum-title">${forum.title}</div>
+                <div style="text-align:right;">
+                    <div style="font-size:0.95rem;">${(forum.topics||0).toLocaleString()} topics</div>
+                    <div style="font-size:0.85rem; opacity:0.9;">${(forum.posts||0).toLocaleString()} posts</div>
+                </div>
+            `;
+
+            const content = document.createElement('div');
+            content.className = 'forum-content';
+
+            // Last post info (render a left block with title/meta and a right action slot)
+            if (forum.last_post_title || forum.last_post_by || forum.last_post_at) {
+                const last = document.createElement('div');
+                last.className = 'last-post';
+                last.innerHTML = `
+                    <div>
+                        <div class="last-post-title">${forum.last_post_title || ''}</div>
+                        <div class="last-post-meta">by ${forum.last_post_by || 'Unknown'} • ${forum.last_post_at || ''}</div>
+                    </div>
+                    <div class="last-post-action"></div>
+                `;
+                content.appendChild(last);
+            }
+
+            // Visit forum link
+            // no Open button displayed per UI requirement
+
+            // Sub-forums
+            const subs = forumSubForumsMap[forum.id] || [];
+            if (subs.length > 0) {
+                const subList = document.createElement('div');
+                subList.className = 'sub-forums';
+                                subs.forEach(s => {
+                                        const row = document.createElement('div');
+                                        row.className = 'sub-forum-item';
+                                        // Create button that opens our local topics.html for the subforum
+                                        const btn = `<button class="sub-open-btn" data-sub-id="${s.id}" data-forum-id="${s.forum_id}">Open Sub Forum</button>`;
+                                        row.innerHTML = `
+                                                <div class="sub-forum-title">${s.title}</div>
+                                                <div style="display:flex;gap:12px;align-items:center;">
+                                                    <div class="sub-forum-counts">${s.counts || ''}</div>
+                                                    ${btn}
+                                                </div>
+                                        `;
+                                        subList.appendChild(row);
+                                });
+                content.appendChild(subList);
+            } else {
+                // no subforums: we'll render an Open button below the posts number
+                // (button rendered after header, not inside content)
+            }
+
+            container.appendChild(header);
+
+            // if there is no subforum, add an Open button inline with the last-post info
+            if (!subs || subs.length === 0) {
+                const lastActionContainer = content.querySelector('.last-post .last-post-action');
+                const openBtn = document.createElement('button');
+                openBtn.className = 'sub-open-btn';
+                openBtn.setAttribute('data-forum-id', forum.id);
+                openBtn.textContent = 'Open forum';
+                if (lastActionContainer) {
+                    lastActionContainer.appendChild(openBtn);
+                } else {
+                    // fallback: keep previous behavior if last-post wasn't present
+                    const actionDiv = document.createElement('div');
+                    actionDiv.style.textAlign = 'right';
+                    actionDiv.style.margin = '6px 0 10px 0';
+                    actionDiv.appendChild(openBtn);
+                    container.appendChild(actionDiv);
+                }
+            }
+
+            container.appendChild(content);
+            return container;
+        }
+
+        // Attach click handler for dynamic subforum buttons
+        document.addEventListener('click', (e) => {
+            const btn = e.target.closest('.sub-open-btn');
+            if (btn) {
+                const subId = btn.getAttribute('data-sub-id');
+                const forumId = btn.getAttribute('data-forum-id');
+                if (subId) {
+                    // sub-forum: parameter sub_id
+                    localStorage.setItem('indexScrollY', String(window.scrollY));
+                    const url = `topics?sub_id=${encodeURIComponent(subId)}`;
+                    window.location.href = url;
+                } else if (forumId) {
+                    // forum (no sub-forums): parameter forum_id
+                    localStorage.setItem('indexScrollY', String(window.scrollY));
+                    const url = `topics?forum_id=${encodeURIComponent(forumId)}`;
+                    window.location.href = url;
+                } else {
+                    const href = btn.getAttribute('data-href');
+                    if (href) window.open(href, '_blank');
+                }
+            }
+        });
+
+        // Load data when page loads
+        loadData();
+    </script>
+</body>
+</html>

@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Topics</title>
+    <style>
+        body{font-family:Helvetica, Arial, Verdana, sans-serif;background:#fbfaf7;color:#222;margin:0;padding:0}
+        .container{max-width:980px;margin:28px auto;padding:22px;background:#fff;border-radius:10px;box-shadow:0 14px 40px rgba(20,20,30,0.08)}
+        .header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+        .title{font-size:1.4rem;font-weight:700;color:#111}
+        .back{font-size:0.95rem;color:#2b6cb0;text-decoration:none}
+        .meta{color:#666;font-size:0.95rem}
+        .topics-list{margin-top:18px}
+        .topic-row{display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid #f1f1f1}
+        .topic-main{flex:1}
+        .topic-title{font-weight:600;color:#0b1220;margin-bottom:6px}
+        .topic-meta{color:#6b7280;font-size:0.9rem}
+        .topic-stats{width:220px;text-align:right;color:#475569;font-size:0.9rem}
+        .topic-stats div{margin-bottom:6px}
+        .pagination{display:flex;gap:8px;align-items:center;justify-content:center;padding:16px 0}
+        .page-btn{background:#fff;border:1px solid #e5e7eb;padding:6px 10px;border-radius:6px;cursor:pointer}
+        .page-btn.active{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
+        .page-btn:disabled{opacity:0.5;cursor:default}
+        .per-page{margin-left:8px}
+        .loading{padding:40px;text-align:center;color:#666}
+        .scroll-top-btn{position:fixed;right:20px;bottom:24px;z-index:999;border:none;border-radius:50px;background:#2b6cb0;color:#fff;width:45px;height:45px;font-size:1rem;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 10px 18px rgba(0,0,0,0.22)}
+        .scroll-top-btn:hover{transform:translateY(-1px)}
+        @media(max-width:720px){.topic-stats{width:120px;font-size:0.85rem}.header{flex-direction:column;align-items:flex-start;gap:6px}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="title" id="pageTitle">Topics</div>
+                <div class="meta" id="pageSub">Loading...</div>
+            </div>
+            <div>
+                <a class="back" href="index.html">← Back to forums</a>
+            </div>
+        </div>
+
+        <div id="topicsContainer">
+            <div class="loading" id="loading">Loading topics…</div>
+        </div>
+
+        <div class="pagination" id="pagination" style="display:none"></div>
+    </div>
+
+    <button id="scrollToTopBtn" class="scroll-top-btn" title="Scroll to top">↑</button>
+
+    <script>
+        (function(){
+            const params = new URLSearchParams(location.search);
+            const forumIdParam = params.get('forum_id');
+            const subIdParam = params.get('sub_id');
+            const pageSizeDefault = 25;
+
+            let topics = [];
+            let subForums = [];
+            let forums = [];
+            let filtered = [];
+            let pageSize = pageSizeDefault;
+            let currentPage = parseInt(params.get('page')||'1', 10) || 1;
+
+            const pageTitle = document.getElementById('pageTitle');
+            const pageSub = document.getElementById('pageSub');
+            const topicsContainer = document.getElementById('topicsContainer');
+            const loadingEl = document.getElementById('loading');
+            const paginationEl = document.getElementById('pagination');
+
+            function renderEmpty(msg){
+                topicsContainer.innerHTML = `<div class="loading">${msg}</div>`;
+                paginationEl.style.display = 'none';
+            }
+
+            function renderTopicsPage(page){
+                const start = (page-1)*pageSize;
+                const end = start + pageSize;
+                const pageItems = filtered.slice(start, end);
+
+                if (pageItems.length === 0) {
+                    renderEmpty('No topics found.');
+                    return;
+                }
+
+                const list = document.createElement('div');
+                list.className = 'topics-list';
+
+                pageItems.forEach(t => {
+                    const row = document.createElement('div');
+                    row.className = 'topic-row';
+
+                    const main = document.createElement('div');
+                    main.className = 'topic-main';
+                    main.innerHTML = `
+                        <div class="topic-title"><a href="${t.link}" target="_blank" rel="noopener noreferrer">${escapeHtml(t.title)}</a></div>
+                        <div class="topic-meta">Started by ${t.started_by || 'Unknown'} • ${t.started_at || ''}</div>
+                        <div class="topic-meta">Last post by ${t.last_post_by || 'Unknown'} • ${t.last_post_at || 'Unknown time'}</div>
+                    `;
+
+                    const stats = document.createElement('div');
+                    stats.className = 'topic-stats';
+                    stats.innerHTML = `
+                        <div>Replies: ${formatNumber(t.statistics_response||0)}</div>
+                        <div>Views: ${formatNumber(t.statistics_views||0)}</div>
+                        <div>Reacts: ${formatNumber(t.statistics_reactions||0)}</div>
+                    `;
+
+                    row.appendChild(main);
+                    row.appendChild(stats);
+                    list.appendChild(row);
+                });
+
+                // summary
+                const total = filtered.length;
+                const summary = document.createElement('div');
+                summary.className = 'meta';
+                summary.style.margin = '12px 0';
+                summary.textContent = `Showing ${start+1}-${Math.min(end, total)} of ${total} topics`;
+
+                topicsContainer.innerHTML = '';
+                topicsContainer.appendChild(summary);
+                topicsContainer.appendChild(list);
+
+                renderPagination(page);
+            }
+
+            function renderPagination(page){
+                const total = filtered.length;
+                const pages = Math.max(1, Math.ceil(total / pageSize));
+                paginationEl.innerHTML = '';
+                if (pages <= 1) { paginationEl.style.display = 'none'; return; }
+                paginationEl.style.display = 'flex';
+
+                const addBtn = (label, disabled, clazz, onClick) => {
+                    const b = document.createElement('button');
+                    b.className = 'page-btn' + (clazz?(' '+clazz):'');
+                    b.textContent = label;
+                    b.disabled = !!disabled;
+                    b.addEventListener('click', onClick);
+                    paginationEl.appendChild(b);
+                };
+
+                addBtn('Prev', page<=1, '', ()=>{ currentPage = Math.max(1, page-1); updateHashAndRender(); });
+
+                // show up to 7 pages: current centered when possible
+                const maxButtons = 7;
+                let startPage = Math.max(1, page - Math.floor(maxButtons/2));
+                let endPage = Math.min(pages, startPage + maxButtons - 1);
+                if (endPage - startPage < maxButtons - 1) startPage = Math.max(1, endPage - maxButtons + 1);
+
+                for (let p = startPage; p <= endPage; p++){
+                    addBtn(p, false, p===page? 'active':'', ()=>{ currentPage = p; updateHashAndRender(); });
+                }
+
+                addBtn('Next', page>=pages, '', ()=>{ currentPage = Math.min(pages, page+1); updateHashAndRender(); });
+
+                // per-page selector
+                const per = document.createElement('select');
+                per.className = 'per-page';
+                [10,25,50,100].forEach(n=>{
+                    const opt = document.createElement('option'); opt.value=n; opt.textContent = n+' / page'; if (n===pageSize) opt.selected=true; per.appendChild(opt);
+                });
+                per.addEventListener('change', ()=>{ pageSize = parseInt(per.value,10); currentPage = 1; updateHashAndRender(); });
+                paginationEl.appendChild(per);
+            }
+
+            function updateHashAndRender(){
+                // update url without reload
+                const u = new URL(location.href);
+                u.searchParams.set('page', currentPage);
+                u.searchParams.set('page_size', pageSize);
+                history.replaceState({},'',u);
+                renderTopicsPage(currentPage);
+            }
+
+            function formatNumber(n){ return n.toLocaleString(); }
+            function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+            async function loadData(){
+                try{
+                    const [topicsResp, subResp, forumsResp] = await Promise.all([
+                        fetch('Data/topics.json'),
+                        fetch('Data/sub-forum.json'),
+                        fetch('Data/forum.json')
+                    ]);
+                    topics = await topicsResp.json();
+                    subForums = await subResp.json();
+                    forums = await forumsResp.json();
+
+                    // determine title
+                    if (subIdParam) {
+                        const sf = subForums.find(s=>String(s.id)===String(subIdParam));
+                        pageTitle.textContent = sf ? sf.title : `Sub-forum ${subIdParam}`;
+                        pageSub.textContent = sf ? `Sub-forum of ${ (forums.find(f=>f.id===sf.forum_id)||{}).title || ''}` : '';
+
+                        filtered = topics.filter(t=>String(t.sub_forum_id) === String(subIdParam));
+                    } else if (forumIdParam) {
+                        const f = forums.find(x=>String(x.id)===String(forumIdParam));
+                        pageTitle.textContent = f ? f.title : `Forum ${forumIdParam}`;
+
+                        // show only topics whose forum_id exactly matches the forum id (do not include sub-forum topics)
+                            filtered = topics.filter(t => String(t.forum_id) === String(forumIdParam));
+                            pageSub.textContent = 'Showing topics for this forum';
+                    } else {
+                        // Require a forum_id or sub_id to show topics. Don't show everything by default.
+                        pageTitle.textContent = 'No forum selected';
+                        pageSub.textContent = 'Open a forum or sub-forum from the directory to view its topics.';
+                        filtered = [];
+                    }
+
+                    // allow overriding page size from query
+                    const qsPageSize = parseInt(params.get('page_size')||'',10);
+                    if (qsPageSize) pageSize = qsPageSize;
+
+                    loadingEl.style.display = 'none';
+                    if (filtered.length===0) {
+                        renderEmpty('No topics found for this forum/subforum.');
+                        return;
+                    }
+
+                    // default page if out of range
+                    const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+                    if (currentPage < 1) currentPage = 1;
+                    if (currentPage > pages) currentPage = pages;
+
+                    renderTopicsPage(currentPage);
+                } catch(err){
+                    console.error(err);
+                    topicsContainer.innerHTML = `<div class="loading">Error loading topics — check console.</div>`;
+                }
+            }
+
+            loadData();
+
+            const scrollTopBtn = document.getElementById('scrollToTopBtn');
+            window.addEventListener('scroll', () => {
+                if (window.scrollY > 220) scrollTopBtn.style.display = 'flex';
+                else scrollTopBtn.style.display = 'none';
+            });
+            scrollTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        })();
+    </script>
+</body>
+</html>

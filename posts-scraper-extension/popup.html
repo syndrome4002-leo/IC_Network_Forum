@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ICN Posts Scraper</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 12px; width: 360px; }
+    h1 { font-size: 1.2rem; margin-bottom: 0.4rem; }
+    button { margin: 5px 0; padding: 8px 12px; border-radius: 6px; border: 1px solid #2b6cb0; background: #2c5282; color: white; cursor: pointer; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #log { white-space: pre-wrap; background:#f5f7fb; border:1px solid #d4dee8; border-radius:6px; padding:8px; height:220px; overflow:auto; margin-top:8px; }
+    #meta { font-size: 0.85rem; margin-top: 4px; color: #333; }
+  </style>
+</head>
+<body>
+  <h1>ICN Posts Scraper</h1>
+  <button id="start" type="button">Start Scraping</button>
+  <button id="download" type="button">Download JSON</button>
+  <div id="meta">status: idle</div>
+  <div id="log"></div>
+  <script src="popup.js"></script>
+</body>
+</html>
