@@ -1,5 +1,6 @@
 {
   "routes": [
+    { "src": "/Data/(.*)", "dest": "/Data/$1" },
     { "src": "/(.*)", "dest": "/" }
   ]
 }
