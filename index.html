@@ -85,6 +85,7 @@
         .forum-title .icon, .sub-forum-title .icon { width:18px; height:18px; flex:0 0 18px; display:inline-flex; align-items:center; justify-content:center }
         .forum-icon svg { fill: #2b6cb0; }
         .subforum-icon svg { fill: #667eea; }
+        .avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-right:8px;font-size:0.78rem;flex:0 0 28px}
 
         .forum-content {
             padding: 8px 0 18px 0;
@@ -317,6 +318,20 @@
         function escapeRegExp(s) { return (s||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
         function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+        // avatar helpers: deterministic color per name
+        function stringToHue(s){
+            let h=0;
+            for(let i=0;i<s.length;i++){ h = (h<<5) - h + s.charCodeAt(i); h |= 0; }
+            return Math.abs(h) % 360;
+        }
+        function generateAvatarHtml(name){
+            const n = (name||'').trim();
+            const initial = n ? escapeHtml(n[0].toUpperCase()) : '?';
+            const hue = stringToHue(n || 'unknown');
+            const color = `hsl(${hue} 60% 45%)`;
+            return `<span class="avatar" style="background:${color}">${initial}</span>`;
+        }
+
         function noFoundHtml(msg) {
             return `
                 <div style="text-align:center;padding:36px;color:#666">
@@ -390,10 +405,15 @@
             if (forum.last_post_title || forum.last_post_by || forum.last_post_at) {
                 const last = document.createElement('div');
                 last.className = 'last-post';
+                const lastBy = forum.last_post_by || 'Unknown';
+                const avatarHtml = generateAvatarHtml(lastBy);
                 last.innerHTML = `
-                    <div>
-                        <div class="last-post-title">${forum.last_post_title || ''}</div>
-                        <div class="last-post-meta">by ${forum.last_post_by || 'Unknown'} • ${forum.last_post_at || ''}</div>
+                    <div style="display:flex;align-items:center;gap:8px">
+                        ${avatarHtml}
+                        <div>
+                            <div class="last-post-title">${forum.last_post_title || ''}</div>
+                            <div class="last-post-meta">by ${escapeHtml(lastBy)} • ${forum.last_post_at || ''}</div>
+                        </div>
                     </div>
                     <div class="last-post-action"></div>
                 `;
