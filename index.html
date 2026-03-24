@@ -367,6 +367,24 @@
             }
         }
 
+        function buildHighlightedFragment(text, query){
+            const frag = document.createDocumentFragment();
+            if (!query) { frag.appendChild(document.createTextNode(text||'')); return frag; }
+            try{
+                const re = new RegExp(escapeRegExp(query), 'gi');
+                let last = 0; let m;
+                while((m = re.exec(text)) !== null){
+                    if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+                    const mark = document.createElement('mark');
+                    mark.textContent = m[0];
+                    frag.appendChild(mark);
+                    last = m.index + m[0].length;
+                    if (re.lastIndex === m.index) re.lastIndex++;
+                }
+                if (last < (text||'').length) frag.appendChild(document.createTextNode(text.slice(last)));
+                return frag;
+            }catch(e){ frag.appendChild(document.createTextNode(text||'')); return frag; }
+        }
         function renderForums() {
             const list = document.getElementById('forumsList');
             list.innerHTML = '';
@@ -402,21 +420,34 @@
 
             const header = document.createElement('div');
             header.className = 'forum-header';
-            // highlight forum title if search active
-            let displayTitle = escapeHtml(forum.title || '');
-            if (searchQueryRaw) {
-                displayTitle = highlightText(forum.title || '', searchQueryRaw);
-            } else {
-                displayTitle = escapeHtml(forum.title || '');
-            }
-            const forumIcon = `<span class="icon forum-icon"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h12v8h4v6H4z"/></svg></span>`;
-            header.innerHTML = `
-                <div class="forum-title">${forumIcon}${displayTitle}</div>
-                <div style="text-align:right;">
-                    <div style="font-size:0.95rem;">${(forum.topics||0).toLocaleString()} topics</div>
-                    <div style="font-size:0.85rem; opacity:0.9;">${(forum.posts||0).toLocaleString()} posts</div>
-                </div>
-            `;
+                // highlight forum title if search active (DOM nodes)
+                let displayTitle = escapeHtml(forum.title || '');
+                if (searchQueryRaw) {
+                    displayTitle = highlightText(forum.title || '', searchQueryRaw);
+                } else {
+                    displayTitle = escapeHtml(forum.title || '');
+                }
+            const forumIconHtml = `<span class="icon forum-icon"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h12v8h4v6H4z"/></svg></span>`;
+            // build header using DOM nodes to avoid accidental whitespace from HTML string concat
+            const left = document.createElement('div');
+            const titleEl = document.createElement('div');
+            titleEl.className = 'forum-title';
+            const tmpIcon = document.createElement('div'); tmpIcon.innerHTML = forumIconHtml;
+            const iconNode = tmpIcon.firstChild;
+            titleEl.appendChild(iconNode);
+            const titleTextSpan = document.createElement('span');
+            titleTextSpan.className = 'forum-title-text';
+            titleTextSpan.appendChild(buildHighlightedFragment(forum.title||'', searchQueryRaw));
+            titleEl.appendChild(titleTextSpan);
+            left.appendChild(titleEl);
+
+            const right = document.createElement('div');
+            right.style.textAlign = 'right';
+            right.innerHTML = `<div style="font-size:0.95rem;">${(forum.topics||0).toLocaleString()} topics</div><div style="font-size:0.85rem; opacity:0.9;">${(forum.posts||0).toLocaleString()} posts</div>`;
+
+            header.innerHTML = '';
+            header.appendChild(left);
+            header.appendChild(right);
 
             const content = document.createElement('div');
             content.className = 'forum-content';
@@ -453,21 +484,24 @@
                                         row.className = 'sub-forum-item';
                                         // Create button that opens our local topics.html for the subforum
                                         // highlight subforum title when searching
-                                        let subTitle = escapeHtml(s.title || '');
-                                        if (searchQueryRaw) {
-                                            subTitle = highlightText(s.title || '', searchQueryRaw);
-                                        } else {
-                                            subTitle = escapeHtml(s.title || '');
-                                        }
-                                        const subIcon = `<span class="icon subforum-icon"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h7l2 2h9v9a2 2 0 0 1-2 2H3z"/></svg></span>`;
+                                        let subTitle = s.title || '';
+                                        const subIconHtml = `<span class="icon subforum-icon"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h7l2 2h9v9a2 2 0 0 1-2 2H3z"/></svg></span>`;
                                         const btn = `<button class="sub-open-btn" data-sub-id="${s.id}" data-forum-id="${s.forum_id}">Open Sub Forum</button>`;
-                                        row.innerHTML = `
-                                                <div class="sub-forum-title">${subIcon}${subTitle}</div>
-                                                <div style="display:flex;gap:12px;align-items:center;">
-                                                    <div class="sub-forum-counts">${s.counts || ''}</div>
-                                                    ${btn}
-                                                </div>
-                                        `;
+                                        // build row DOM to avoid HTML concat issues
+                                        row.innerHTML = '';
+                                        const titleWrapper = document.createElement('div');
+                                        titleWrapper.className = 'sub-forum-title';
+                                        const tmpSubIcon = document.createElement('div'); tmpSubIcon.innerHTML = subIconHtml;
+                                        titleWrapper.appendChild(tmpSubIcon.firstChild);
+                                        const subTextSpan = document.createElement('span');
+                                        subTextSpan.className = 'sub-forum-title-text';
+                                        subTextSpan.appendChild(buildHighlightedFragment(subTitle, searchQueryRaw));
+                                        titleWrapper.appendChild(subTextSpan);
+                                        const rightWrap = document.createElement('div');
+                                        rightWrap.style.display = 'flex'; rightWrap.style.gap = '12px'; rightWrap.style.alignItems = 'center';
+                                        rightWrap.innerHTML = `<div class="sub-forum-counts">${s.counts || ''}</div>${btn}`;
+                                        row.appendChild(titleWrapper);
+                                        row.appendChild(rightWrap);
                                         subList.appendChild(row);
                                 });
                 content.appendChild(subList);
