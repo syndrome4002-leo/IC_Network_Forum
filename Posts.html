@@ -130,18 +130,6 @@
                     row.appendChild(header);
                     row.appendChild(content);
 
-                    // if content is long, add a read-more trigger
-                    if ((p.contents || '').length > 550) {
-                        const more = document.createElement('div');
-                        more.className = 'read-more';
-                        more.textContent = 'Show more';
-                        more.addEventListener('click', () => {
-                            const expanded = content.classList.toggle('expanded');
-                            more.textContent = expanded ? 'Show less' : 'Show more';
-                        });
-                        row.appendChild(more);
-                    }
-
                     if (p.signature) {
                         const sig = document.createElement('div');
                         sig.className = 'post-signature';
@@ -150,6 +138,26 @@
                     }
 
                     list.appendChild(row);
+
+                    // measure if content is actually truncated and only then add read-more
+                    // must measure after element is in the DOM
+                    // small timeout yields accurate layout (but keep minimal)
+                    requestAnimationFrame(() => {
+                        const isTruncated = content.scrollHeight > content.clientHeight + 1;
+                        if (isTruncated) {
+                            const more = document.createElement('div');
+                            more.className = 'read-more';
+                            more.textContent = 'Show more';
+                            more.addEventListener('click', () => {
+                                const expanded = content.classList.toggle('expanded');
+                                more.textContent = expanded ? 'Show less' : 'Show more';
+                            });
+                            // insert before signature if present
+                            const sigEl = row.querySelector('.post-signature');
+                            if (sigEl) row.insertBefore(more, sigEl);
+                            else row.appendChild(more);
+                        }
+                    });
                 });
 
                 const total = filtered.length;
