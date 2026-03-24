@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Posts</title>
+    <style>
+        body{font-family:Helvetica, Arial, Verdana, sans-serif;background:#fbfaf7;color:#222;margin:0;padding:0}
+        .container{max-width:980px;margin:28px auto;padding:22px;background:#fff;border-radius:10px;box-shadow:0 14px 40px rgba(20,20,30,0.08)}
+        .header{display:flex;justify-content:space-between;align-items:center;gap:12px}
+        .title{font-size:1.4rem;font-weight:700;color:#111}
+        .back{font-size:0.95rem;color:#2b6cb0;text-decoration:none}
+        .meta{color:#666;font-size:0.95rem}
+        .posts-list{margin-top:18px}
+        .post-row{padding:14px 12px;border:1px solid #e5e7eb;border-radius:8px;margin-bottom:10px;background:#fff}
+        .post-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px}
+        .post-author{font-weight:600;color:#1f2937;margin-bottom:3px}
+        .post-meta{color:#6b7280;font-size:0.9rem}
+        .post-content{color:#1b1f2b;line-height:1.52;margin-top:6px;white-space:pre-wrap;word-break:break-word}
+        .post-signature{margin-top:10px;color:#475569;font-size:0.86rem;border-top:1px solid #f3f4f6;padding-top:10px}
+        .pagination{display:flex;gap:8px;align-items:center;justify-content:center;padding:16px 0}
+        .page-btn{background:#fff;border:1px solid #e5e7eb;padding:6px 10px;border-radius:6px;cursor:pointer}
+        .page-btn.active{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
+        .page-btn:disabled{opacity:0.5;cursor:default}
+        .per-page{margin-left:8px}
+        .loading{display:flex;align-items:center;justify-content:center;gap:10px;padding:40px;color:#666}
+        .loading::before{content:'';width:18px;height:18px;border:3px solid #d4d4d4;border-top-color:#2b6cb0;border-radius:50%;animation:spin 0.8s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        .scroll-top-btn{position:fixed;right:20px;bottom:24px;z-index:999;border:none;border-radius:50px;background:#2b6cb0;color:#fff;width:45px;height:45px;font-size:1rem;display:none;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 10px 18px rgba(0,0,0,0.22)}
+        .scroll-top-btn:hover{transform:translateY(-1px)}
+        @media(max-width:720px){.header{flex-direction:column;align-items:flex-start;gap:6px}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <div class="title" id="pageTitle">Posts</div>
+                <div class="meta" id="pageSub">Loading posts for topic...</div>
+            </div>
+            <div>
+                <a class="back" id="backLink" href="index.html">← Back</a>
+            </div>
+        </div>
+
+        <div id="postsContainer">
+            <div class="loading" id="loading">Loading posts…</div>
+        </div>
+
+        <div class="pagination" id="pagination" style="display:none"></div>
+    </div>
+
+    <button id="scrollToTopBtn" class="scroll-top-btn" title="Scroll to top">↑</button>
+
+    <script>
+        (function(){
+            const params = new URLSearchParams(location.search);
+            const topicIdParam = params.get('topic_id');
+            const forumIdParam = params.get('forum_id');
+            const subIdParam = params.get('sub_id');
+            const pageSizeDefault = 20;
+
+            let allPosts = [];
+            let filtered = [];
+            let pageSize = pageSizeDefault;
+            let currentPage = parseInt(params.get('page')||'1', 10) || 1;
+
+            const pageTitle = document.getElementById('pageTitle');
+            const pageSub = document.getElementById('pageSub');
+            const postsContainer = document.getElementById('postsContainer');
+            const loadingEl = document.getElementById('loading');
+            const paginationEl = document.getElementById('pagination');
+            const backLink = document.getElementById('backLink');
+
+            function renderEmpty(msg){
+                postsContainer.innerHTML = `<div class="loading">${msg}</div>`;
+                paginationEl.style.display = 'none';
+            }
+
+            function renderPostsPage(page){
+                const start = (page-1)*pageSize;
+                const end = start + pageSize;
+                const pageItems = filtered.slice(start, end);
+
+                if (pageItems.length === 0) {
+                    renderEmpty('No posts found for this topic.');
+                    return;
+                }
+
+                const list = document.createElement('div');
+                list.className = 'posts-list';
+
+                pageItems.forEach(p => {
+                    const row = document.createElement('div');
+                    row.className = 'post-row';
+
+                    const header = document.createElement('div');
+                    header.className = 'post-header';
+                    header.innerHTML = `
+                        <div>
+                            <div class="post-author">${escapeHtml(p.post_by || 'Unknown')}</div>
+                            <div class="post-meta">${escapeHtml(p.post_at || 'Unknown date')}</div>
+                        </div>
+                        <div class="post-meta">Post #${start + pageItems.indexOf(p) + 1}</div>
+                    `;
+
+                    const content = document.createElement('div');
+                    content.className = 'post-content';
+                    content.textContent = p.contents || '';
+
+                    row.appendChild(header);
+                    row.appendChild(content);
+
+                    if (p.signature) {
+                        const sig = document.createElement('div');
+                        sig.className = 'post-signature';
+                        sig.textContent = p.signature;
+                        row.appendChild(sig);
+                    }
+
+                    list.appendChild(row);
+                });
+
+                const total = filtered.length;
+                const summary = document.createElement('div');
+                summary.className = 'meta';
+                summary.style.margin = '12px 0';
+                summary.textContent = `Showing ${start+1}-${Math.min(end,total)} of ${total} posts`;
+
+                postsContainer.innerHTML = '';
+                postsContainer.appendChild(summary);
+                postsContainer.appendChild(list);
+
+                renderPagination(page);
+            }
+
+            function renderPagination(page){
+                const total = filtered.length;
+                const pages = Math.max(1, Math.ceil(total / pageSize));
+                paginationEl.innerHTML = '';
+                if (pages <= 1) { paginationEl.style.display = 'none'; return; }
+                paginationEl.style.display = 'flex';
+
+                const addBtn = (label, disabled, clazz, onClick) => {
+                    const b = document.createElement('button');
+                    b.className = 'page-btn' + (clazz ? (' ' + clazz) : '');
+                    b.textContent = label;
+                    b.disabled = !!disabled;
+                    b.addEventListener('click', onClick);
+                    paginationEl.appendChild(b);
+                };
+
+                addBtn('Prev', page <= 1, '', ()=>{ currentPage = Math.max(1, page-1); updateHashAndRender(); });
+
+                const maxButtons = 7;
+                let startPage = Math.max(1, page - Math.floor(maxButtons/2));
+                let endPage = Math.min(pages, startPage + maxButtons - 1);
+                if (endPage - startPage < maxButtons - 1) startPage = Math.max(1, endPage - maxButtons + 1);
+
+                for (let p = startPage; p <= endPage; p++) {
+                    addBtn(p, false, p===page? 'active' : '', ()=>{ currentPage = p; updateHashAndRender(); });
+                }
+
+                addBtn('Next', page >= pages, '', ()=>{ currentPage = Math.min(pages, page+1); updateHashAndRender(); });
+
+                const per = document.createElement('select');
+                per.className = 'per-page';
+                [10,20,30,50].forEach(n=>{
+                    const opt = document.createElement('option'); opt.value = n; opt.textContent = n + ' / page'; if (n===pageSize) opt.selected=true; per.appendChild(opt);
+                });
+                per.addEventListener('change', ()=>{ pageSize = parseInt(per.value,10); currentPage = 1; updateHashAndRender(); });
+                paginationEl.appendChild(per);
+            }
+
+            function updateHashAndRender(){
+                const u = new URL(location.href);
+                u.searchParams.set('page', currentPage);
+                u.searchParams.set('page_size', pageSize);
+                history.replaceState({}, '', u);
+                renderPostsPage(currentPage);
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            function formatNumber(n){ return n.toLocaleString(); }
+            function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+            async function loadData(){
+                if (!topicIdParam) {
+                    pageTitle.textContent = 'No topic selected';
+                    pageSub.textContent = 'Please open a topic from the topics list first.';
+                    renderEmpty('No topic id specified.');
+                    return;
+                }
+
+                let topicTitle = `Topic #${topicIdParam}`;
+                try {
+                    const topicsResp = await fetch('Data/topics.json');
+                    if (topicsResp.ok) {
+                        const topicsData = await topicsResp.json();
+                        const foundTopic = Array.isArray(topicsData) ? topicsData.find((t) => String(t.id) === String(topicIdParam)) : null;
+                        if (foundTopic && foundTopic.title) {
+                            topicTitle = foundTopic.title;
+                        }
+                    }
+                } catch (e) {
+                    console.warn('Failed to load topic title:', e);
+                }
+
+                pageTitle.textContent = `${escapeHtml(topicTitle)}`;
+                pageSub.textContent = `Posts for topic ${escapeHtml(topicTitle)}`;
+
+                const backTarget = subIdParam ? `Topics.html?sub_id=${encodeURIComponent(subIdParam)}` : (forumIdParam ? `Topics.html?forum_id=${encodeURIComponent(forumIdParam)}` : 'index.html');
+                // const backTarget = subIdParam ? `topics?sub_id=${encodeURIComponent(subIdParam)}` : (forumIdParam ? `topics?forum_id=${encodeURIComponent(forumIdParam)}` : 'index');
+                backLink.href = backTarget;
+
+                try {
+                    const fileCount = 19;
+                    const promises = [];
+                    for (let i = 1; i <= fileCount; i++) {
+                        promises.push(fetch(`Data/posts/posts${i}.json`).then(res => {
+                            if (!res.ok) return [];
+                            return res.json().catch(() => []);
+                        }).catch(() => []));
+                    }
+
+                    const chunks = await Promise.all(promises);
+                    allPosts = chunks.reduce((acc, arr) => acc.concat(Array.isArray(arr) ? arr : []), []);
+
+                    filtered = allPosts.filter(p => String(p.topic_id) === String(topicIdParam));
+
+                    pageSub.textContent = `${filtered.length.toLocaleString()} posts found for topic ${topicIdParam}.`;
+
+                    if (filtered.length === 0) {
+                        renderEmpty('No posts found for this topic in Data/posts files.');
+                        return;
+                    }
+
+                    // query params override
+                    const qsPageSize = parseInt(params.get('page_size')||'',10);
+                    if (qsPageSize) pageSize = qsPageSize;
+
+                    const pages = Math.max(1, Math.ceil(filtered.length / pageSize));
+                    if (currentPage < 1) currentPage = 1;
+                    if (currentPage > pages) currentPage = pages;
+
+                    renderPostsPage(currentPage);
+                } catch (error) {
+                    console.error(error);
+                    renderEmpty('Error loading posts — check console.');
+                }
+            }
+
+            loadData();
+
+            const scrollTopBtn = document.getElementById('scrollToTopBtn');
+            window.addEventListener('scroll', () => {
+                scrollTopBtn.style.display = window.scrollY > 220 ? 'flex' : 'none';
+            });
+            scrollTopBtn.addEventListener('click', () => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            });
+        })();
+    </script>
+</body>
+</html>
