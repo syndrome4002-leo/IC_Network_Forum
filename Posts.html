@@ -18,9 +18,6 @@
         .post-meta{color:#6b7280;font-size:0.9rem}
         .post-content{color:#1b1f2b;line-height:1.52;margin-top:6px;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:hidden;position:relative;transition:max-height 0.2s ease}
         .post-content.expanded{max-height:none;}
-        .post-content ol{margin:8px 0 8px 16px;padding-left:8px}
-        .post-content li{margin-bottom:6px;line-height:1.5;padding-left:4px}
-        .post-content ol li::marker{font-weight:600;color:#2b6cb0}
         .read-more{display:inline-block;margin-top:8px;font-size:0.86rem;color:#2b6cb0;cursor:pointer;text-decoration:underline}
         .post-signature{margin-top:10px;color:#475569;font-size:0.86rem;border-top:1px solid #f3f4f6;padding-top:10px}
         .pagination{display:flex;gap:8px;align-items:center;justify-content:center;padding:16px 0}
@@ -82,27 +79,6 @@
                 paginationEl.style.display = 'none';
             }
 
-            function formatPostContent(text) {
-                if (!text) return '';
-
-                // Convert numbered lists like (1), (2), etc. into proper HTML lists
-                let formatted = text;
-
-                // Replace numbered items with list items
-                formatted = formatted.replace(/\(\d+\)\s*([^\n]+)/g, '<li>$1</li>');
-
-                // Wrap consecutive list items in <ol>
-                formatted = formatted.replace(/(<li>.*?<\/li>\s*)+/g, '<ol>$&</ol>');
-
-                // Handle line breaks, but preserve them within list items
-                formatted = formatted.replace(/\n/g, '<br>');
-
-                // Clean up any double <br> tags that might appear
-                formatted = formatted.replace(/(<br>\s*)+/g, '<br>');
-
-                return formatted;
-            }
-
             function renderPostsPage(page){
                 const start = (page-1)*pageSize;
                 const end = start + pageSize;
@@ -132,7 +108,7 @@
 
                     const content = document.createElement('div');
                     content.className = 'post-content';
-                    content.innerHTML = formatPostContent(p.contents || '');
+                    content.textContent = p.contents || '';
 
                     row.appendChild(header);
                     row.appendChild(content);
