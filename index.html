@@ -312,6 +312,18 @@
 
         function escapeRegExp(s) { return (s||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
         function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        function noFoundHtml(msg) {
+            return `
+                <div style="text-align:center;padding:36px;color:#666">
+                    <svg width="160" height="80" viewBox="0 0 160 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <rect rx="8" width="160" height="80" fill="#f3f4f6" />
+                        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Helvetica, Arial, sans-serif" font-size="18">No founded</text>
+                    </svg>
+                    <div style="margin-top:12px;color:#6b7280">${escapeHtml(msg||'')}</div>
+                </div>`;
+        }
+
         function renderForums() {
             const list = document.getElementById('forumsList');
             list.innerHTML = '';
@@ -322,10 +334,10 @@
                 return subs.some(s => (s.title||'').toLowerCase().includes(searchQuery));
             }) : forums;
             if (items.length === 0) {
-                const no = document.createElement('div');
-                no.className = 'no-subforums';
-                no.innerHTML = `No forums found matching "${searchQuery}"`;
-                list.appendChild(no);
+                // hide global loading if present
+                const loadingEl = document.getElementById('loading');
+                if (loadingEl) loadingEl.style.display = 'none';
+                list.innerHTML = noFoundHtml(searchQueryRaw ? `No forums found matching "${searchQueryRaw}"` : 'No forums found');
                 return;
             }
 

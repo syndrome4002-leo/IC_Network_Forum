@@ -71,6 +71,16 @@
             let searchQueryRaw = '';
 
             function escapeRegExp(s) { return (s||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+            function noFoundHtml(msg) {
+                return `
+                    <div style="text-align:center;padding:36px;color:#666">
+                        <svg width="160" height="80" viewBox="0 0 160 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect rx="8" width="160" height="80" fill="#f3f4f6" />
+                            <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Helvetica, Arial, sans-serif" font-size="18">No founded</text>
+                        </svg>
+                        <div style="margin-top:12px;color:#6b7280">${(msg||'')}</div>
+                    </div>`;
+            }
             let pageSize = pageSizeDefault;
             let currentPage = parseInt(params.get('page')||'1', 10) || 1;
 
@@ -81,7 +91,8 @@
             const paginationEl = document.getElementById('pagination');
 
             function renderEmpty(msg){
-                topicsContainer.innerHTML = `<div class="loading">${msg}</div>`;
+                if (loadingEl) loadingEl.style.display = 'none';
+                topicsContainer.innerHTML = noFoundHtml(msg);
                 paginationEl.style.display = 'none';
             }
 
