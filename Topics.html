@@ -84,6 +84,25 @@
                         <div style="margin-top:12px;color:#6b7280">${(msg||'')}</div>
                     </div>`;
             }
+            // Build a DocumentFragment with text nodes and <mark> for matches
+            function buildHighlightedFragment(text, query){
+                const frag = document.createDocumentFragment();
+                if (!query) { frag.appendChild(document.createTextNode(text||'')); return frag; }
+                try{
+                    const re = new RegExp(escapeRegExp(query), 'gi');
+                    let last = 0; let m;
+                    while((m = re.exec(text)) !== null){
+                        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+                        const mark = document.createElement('mark');
+                        mark.textContent = m[0];
+                        frag.appendChild(mark);
+                        last = m.index + m[0].length;
+                        if (re.lastIndex === m.index) re.lastIndex++;
+                    }
+                    if (last < (text||'').length) frag.appendChild(document.createTextNode(text.slice(last)));
+                } catch(e){ frag.appendChild(document.createTextNode(text||'')); }
+                return frag;
+            }
             let pageSize = pageSizeDefault;
             let currentPage = parseInt(params.get('page')||'1', 10) || 1;
 
@@ -120,19 +139,24 @@
                     main.className = 'topic-main';
                     // const targetUrl = `posts?topic_id=${encodeURIComponent(t.id)}${forumIdParam ? '&forum_id='+encodeURIComponent(forumIdParam) : ''}${subIdParam ? '&sub_id='+encodeURIComponent(subIdParam) : ''}`;
                     const targetUrl = `Posts.html?topic_id=${encodeURIComponent(t.id)}${forumIdParam ? '&forum_id='+encodeURIComponent(forumIdParam) : ''}${subIdParam ? '&sub_id='+encodeURIComponent(subIdParam) : ''}`;
-                    // highlight topic title when searching
-                    let titleHtml = escapeHtml(t.title || '');
-                    if (searchQueryRaw) {
-                        try {
-                            const re = new RegExp(escapeRegExp(searchQueryRaw), 'gi');
-                            titleHtml = titleHtml.replace(re, '<mark>$&</mark>');
-                        } catch (e) {}
-                    }
-                    main.innerHTML = `
-                        <div class="topic-title"><a href="${targetUrl}" class="open-posts-link" style="color:#2b6cb0;text-decoration:none;">${titleHtml}</a></div>
-                        <div class="topic-meta">Started by ${t.started_by || 'Unknown'} • ${t.started_at || ''}</div>
-                        <div class="topic-meta">Last post by ${t.last_post_by || 'Unknown'} • ${t.last_post_at || 'Unknown time'}</div>
-                    `;
+                    // build topic title using DOM nodes to avoid entity-splitting
+                    const titleDiv = document.createElement('div');
+                    titleDiv.className = 'topic-title';
+                    const a = document.createElement('a');
+                    a.href = targetUrl;
+                    a.className = 'open-posts-link';
+                    a.style.color = '#2b6cb0';
+                    a.style.textDecoration = 'none';
+                    a.appendChild(buildHighlightedFragment(t.title || '', searchQueryRaw));
+                    titleDiv.appendChild(a);
+
+                    const meta1 = document.createElement('div'); meta1.className = 'topic-meta'; meta1.textContent = `Started by ${t.started_by || 'Unknown'} • ${t.started_at || ''}`;
+                    const meta2 = document.createElement('div'); meta2.className = 'topic-meta'; meta2.textContent = `Last post by ${t.last_post_by || 'Unknown'} • ${t.last_post_at || 'Unknown time'}`;
+
+                    main.innerHTML = '';
+                    main.appendChild(titleDiv);
+                    main.appendChild(meta1);
+                    main.appendChild(meta2);
 
                     const stats = document.createElement('div');
                     stats.className = 'topic-stats';

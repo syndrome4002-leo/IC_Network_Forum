@@ -124,16 +124,9 @@
                     const content = document.createElement('div');
                     content.className = 'post-content';
                     const rawText = p.contents || '';
-                    let rendered = escapeHtml(rawText);
-                    if (searchTerm) {
-                        try {
-                            const re = new RegExp(escapeRegExp(searchTerm), 'gi');
-                            rendered = rendered.replace(re, '<mark>$&</mark>');
-                        } catch (e) {
-                            // fallback: no replacement
-                        }
-                    }
-                    content.innerHTML = rendered;
+                    // append highlighted fragment (safe — preserves entities)
+                    content.innerHTML = '';
+                    content.appendChild(buildHighlightedFragment(rawText, searchTerm));
 
                     row.appendChild(header);
                     row.appendChild(content);
@@ -272,16 +265,17 @@
                     if (topicsResp.ok) {
                         const topicsData = await topicsResp.json();
                         const foundTopic = Array.isArray(topicsData) ? topicsData.find((t) => String(t.id) === String(topicIdParam)) : null;
-                        if (foundTopic && foundTopic.title) {
-                            topicTitle = foundTopic.title;
-                        }
+                            if (foundTopic && foundTopic.title) {
+                                topicTitle = foundTopic.title;
+                            }
                     }
                 } catch (e) {
                     console.warn('Failed to load topic title:', e);
                 }
 
-                pageTitle.textContent = `${escapeHtml(topicTitle)}`;
-                pageSub.textContent = `Posts for topic ${escapeHtml(topicTitle)}`;
+                // set raw textContent (don't escape here — textContent is safe and prevents showing &amp;)
+                pageTitle.textContent = topicTitle;
+                pageSub.textContent = `Posts for topic ${topicTitle}`;
 
                 const backTarget = subIdParam ? `Topics.html?sub_id=${encodeURIComponent(subIdParam)}` : (forumIdParam ? `Topics.html?forum_id=${encodeURIComponent(forumIdParam)}` : 'index.html');
                 // const backTarget = subIdParam ? `topics?sub_id=${encodeURIComponent(subIdParam)}` : (forumIdParam ? `topics?forum_id=${encodeURIComponent(forumIdParam)}` : 'index');
@@ -345,6 +339,26 @@
                 currentPage = 1;
                 renderPostsPage(currentPage);
             });
+
+            // Build a DocumentFragment with text nodes and <mark> elements for matches
+            function buildHighlightedFragment(text, query){
+                const frag = document.createDocumentFragment();
+                if (!query) { frag.appendChild(document.createTextNode(text||'')); return frag; }
+                try{
+                    const re = new RegExp(escapeRegExp(query), 'gi');
+                    let last = 0; let m;
+                    while((m = re.exec(text)) !== null){
+                        if (m.index > last) frag.appendChild(document.createTextNode(text.slice(last, m.index)));
+                        const mark = document.createElement('mark');
+                        mark.textContent = m[0];
+                        frag.appendChild(mark);
+                        last = m.index + m[0].length;
+                        if (re.lastIndex === m.index) re.lastIndex++;
+                    }
+                    if (last < (text||'').length) frag.appendChild(document.createTextNode(text.slice(last)));
+                } catch(e){ frag.appendChild(document.createTextNode(text||'')); }
+                return frag;
+            }
 
             const scrollTopBtn = document.getElementById('scrollToTopBtn');
             window.addEventListener('scroll', () => {
