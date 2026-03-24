@@ -68,6 +68,9 @@
             let filtered = [];
             let filteredBase = [];
             let searchQuery = '';
+            let searchQueryRaw = '';
+
+            function escapeRegExp(s) { return (s||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
             let pageSize = pageSizeDefault;
             let currentPage = parseInt(params.get('page')||'1', 10) || 1;
 
@@ -95,7 +98,7 @@
                 const list = document.createElement('div');
                 list.className = 'topics-list';
 
-                pageItems.forEach(t => {
+                    pageItems.forEach(t => {
                     const row = document.createElement('div');
                     row.className = 'topic-row';
 
@@ -103,8 +106,16 @@
                     main.className = 'topic-main';
                     // const targetUrl = `posts?topic_id=${encodeURIComponent(t.id)}${forumIdParam ? '&forum_id='+encodeURIComponent(forumIdParam) : ''}${subIdParam ? '&sub_id='+encodeURIComponent(subIdParam) : ''}`;
                     const targetUrl = `Posts.html?topic_id=${encodeURIComponent(t.id)}${forumIdParam ? '&forum_id='+encodeURIComponent(forumIdParam) : ''}${subIdParam ? '&sub_id='+encodeURIComponent(subIdParam) : ''}`;
+                    // highlight topic title when searching
+                    let titleHtml = escapeHtml(t.title || '');
+                    if (searchQueryRaw) {
+                        try {
+                            const re = new RegExp(escapeRegExp(searchQueryRaw), 'gi');
+                            titleHtml = titleHtml.replace(re, '<mark>$&</mark>');
+                        } catch (e) {}
+                    }
                     main.innerHTML = `
-                        <div class="topic-title"><a href="${targetUrl}" class="open-posts-link" style="color:#2b6cb0;text-decoration:none;">${escapeHtml(t.title)}</a></div>
+                        <div class="topic-title"><a href="${targetUrl}" class="open-posts-link" style="color:#2b6cb0;text-decoration:none;">${titleHtml}</a></div>
                         <div class="topic-meta">Started by ${t.started_by || 'Unknown'} • ${t.started_at || ''}</div>
                         <div class="topic-meta">Last post by ${t.last_post_by || 'Unknown'} • ${t.last_post_at || 'Unknown time'}</div>
                     `;
@@ -251,7 +262,8 @@
             // search handling
             const searchInputEl = document.getElementById('searchInput');
             searchInputEl.addEventListener('input', () => {
-                searchQuery = (searchInputEl.value || '').trim().toLowerCase();
+                searchQueryRaw = (searchInputEl.value || '').trim();
+                searchQuery = searchQueryRaw.toLowerCase();
                 if (!searchQuery) {
                     filtered = filteredBase.slice();
                 } else {

@@ -308,11 +308,19 @@
         }
 
         let searchQuery = '';
+        let searchQueryRaw = '';
+
+        function escapeRegExp(s) { return (s||'').replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+        function escapeHtml(s){ return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
         function renderForums() {
             const list = document.getElementById('forumsList');
             list.innerHTML = '';
 
-            const items = searchQuery ? forums.filter(f => (f.title||'').toLowerCase().includes(searchQuery)) : forums;
+            const items = searchQuery ? forums.filter(f => {
+                if ((f.title||'').toLowerCase().includes(searchQuery)) return true;
+                const subs = forumSubForumsMap[f.id] || [];
+                return subs.some(s => (s.title||'').toLowerCase().includes(searchQuery));
+            }) : forums;
             if (items.length === 0) {
                 const no = document.createElement('div');
                 no.className = 'no-subforums';
@@ -339,8 +347,16 @@
 
             const header = document.createElement('div');
             header.className = 'forum-header';
+            // highlight forum title if search active
+            let displayTitle = escapeHtml(forum.title || '');
+            if (searchQueryRaw) {
+                try {
+                    const re = new RegExp(escapeRegExp(searchQueryRaw), 'gi');
+                    displayTitle = displayTitle.replace(re, '<mark>$&</mark>');
+                } catch (e) {}
+            }
             header.innerHTML = `
-                <div class="forum-title">${forum.title}</div>
+                <div class="forum-title">${displayTitle}</div>
                 <div style="text-align:right;">
                     <div style="font-size:0.95rem;">${(forum.topics||0).toLocaleString()} topics</div>
                     <div style="font-size:0.85rem; opacity:0.9;">${(forum.posts||0).toLocaleString()} posts</div>
@@ -376,9 +392,17 @@
                                         const row = document.createElement('div');
                                         row.className = 'sub-forum-item';
                                         // Create button that opens our local topics.html for the subforum
+                                        // highlight subforum title when searching
+                                        let subTitle = escapeHtml(s.title || '');
+                                        if (searchQueryRaw) {
+                                            try {
+                                                const re = new RegExp(escapeRegExp(searchQueryRaw), 'gi');
+                                                subTitle = subTitle.replace(re, '<mark>$&</mark>');
+                                            } catch (e) {}
+                                        }
                                         const btn = `<button class="sub-open-btn" data-sub-id="${s.id}" data-forum-id="${s.forum_id}">Open Sub Forum</button>`;
                                         row.innerHTML = `
-                                                <div class="sub-forum-title">${s.title}</div>
+                                                <div class="sub-forum-title">${subTitle}</div>
                                                 <div style="display:flex;gap:12px;align-items:center;">
                                                     <div class="sub-forum-counts">${s.counts || ''}</div>
                                                     ${btn}
@@ -446,7 +470,8 @@
         // wire up search
         const searchInputEl = document.getElementById('searchInput');
         searchInputEl.addEventListener('input', () => {
-            searchQuery = (searchInputEl.value || '').trim().toLowerCase();
+            searchQueryRaw = (searchInputEl.value || '').trim();
+            searchQuery = searchQueryRaw.toLowerCase();
             renderForums();
         });
     </script>
