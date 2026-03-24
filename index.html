@@ -50,32 +50,32 @@
         .forums-list {
             display: flex;
             flex-direction: column;
-            gap: 20px;
+            gap: 24px;
         }
 
         .forum-item {
-            background: transparent;
-            border-radius: 6px;
-            overflow: visible;
-            margin-bottom: 18px;
-            padding-bottom: 0;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 10px;
         }
 
         .forum-divider {
-            height: 1px;
-            background: linear-gradient(90deg, rgba(20,20,30,0.02), rgba(20,20,30,0.06), rgba(20,20,30,0.02));
-            margin: 18px 0 22px 0;
+            display: none;
         }
 
         .forum-header {
-            padding: 8px 0 6px 0;
+            padding: 20px 24px 16px 24px;
             display: flex;
             justify-content: space-between;
             align-items: baseline;
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid #e5e7eb;
         }
 
         .forum-title {
-            font-size: 1.15rem;
+            font-size: 1.25rem;
             font-weight: 700;
             color: #111827;
             flex: 1;
@@ -102,7 +102,7 @@
         .category-content { margin-top:10px; }
 
         .forum-content {
-            padding: 8px 0 18px 0;
+            padding: 16px 24px 20px 24px;
             max-height: none;
             overflow: visible;
             color: #374151;
@@ -114,7 +114,11 @@
             justify-content: space-between;
             align-items: center;
             gap: 12px;
-            padding: 6px 0;
+            padding: 12px 0;
+            margin: 8px 0;
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 12px 16px;
         }
 
         .last-post .last-post-title {
@@ -142,7 +146,9 @@
 
 
         .sub-forums {
-            margin-top: 10px;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid #f3f4f6;
         }
 
         .sub-forum-item {
@@ -150,7 +156,9 @@
             justify-content: space-between;
             align-items: center;
             padding: 12px 0;
-            border-bottom: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f3f4f6;
+            margin: 0 -4px;
+            padding: 12px 4px;
         }
 
         .sub-forum-item:last-child {
