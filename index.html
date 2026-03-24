@@ -316,9 +316,12 @@
         function noFoundHtml(msg) {
             return `
                 <div style="text-align:center;padding:36px;color:#666">
-                    <svg width="160" height="80" viewBox="0 0 160 80" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-                        <rect rx="8" width="160" height="80" fill="#f3f4f6" />
-                        <text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="#9ca3af" font-family="Helvetica, Arial, sans-serif" font-size="18">No founded</text>
+                    <svg width="160" height="100" viewBox="0 0 160 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <rect x="12" y="10" width="96" height="80" rx="6" fill="#ffffff" stroke="#e6e9ee" />
+                        <path d="M108 10v28a8 8 0 0 1-8 8H76" fill="#f8fafc" stroke="#e6e9ee"/>
+                        <rect x="26" y="28" width="64" height="6" rx="3" fill="#eef3ff" />
+                        <rect x="26" y="44" width="84" height="6" rx="3" fill="#f3f6fb" />
+                        <rect x="26" y="60" width="64" height="6" rx="3" fill="#f3f6fb" />
                     </svg>
                     <div style="margin-top:12px;color:#6b7280">${escapeHtml(msg||'')}</div>
                 </div>`;
