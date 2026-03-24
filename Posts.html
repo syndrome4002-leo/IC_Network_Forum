@@ -45,6 +45,10 @@
             </div>
         </div>
 
+        <div style="margin-top:10px;">
+            <input id="searchInput" placeholder="Search posts by content..." style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px" />
+        </div>
+
         <div id="postsContainer">
             <div class="loading" id="loading">Loading posts…</div>
         </div>
@@ -64,6 +68,8 @@
 
             let allPosts = [];
             let filtered = [];
+            let filteredBase = [];
+            let searchTerm = '';
             let pageSize = pageSizeDefault;
             let currentPage = parseInt(params.get('page')||'1', 10) || 1;
 
@@ -108,7 +114,17 @@
 
                     const content = document.createElement('div');
                     content.className = 'post-content';
-                    content.textContent = p.contents || '';
+                    const rawText = p.contents || '';
+                    let rendered = escapeHtml(rawText);
+                    if (searchTerm) {
+                        try {
+                            const re = new RegExp(escapeRegExp(searchTerm), 'gi');
+                            rendered = rendered.replace(re, '<mark>$&</mark>');
+                        } catch (e) {
+                            // fallback: no replacement
+                        }
+                    }
+                    content.innerHTML = rendered;
 
                     row.appendChild(header);
                     row.appendChild(content);
@@ -242,6 +258,9 @@
 
                     filtered = allPosts.filter(p => String(p.topic_id) === String(topicIdParam));
 
+                    // keep base list for client-side search
+                    filteredBase = filtered.slice();
+
                     pageSub.textContent = `${filtered.length.toLocaleString()} posts found for topic ${topicIdParam}.`;
 
                     if (filtered.length === 0) {
@@ -265,6 +284,23 @@
             }
 
             loadData();
+
+            // helper to escape regex special chars for search
+            function escapeRegExp(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); }
+
+            // wire up search input to filter posts by contents and highlight
+            const searchInputEl = document.getElementById('searchInput');
+            searchInputEl.addEventListener('input', () => {
+                searchTerm = (searchInputEl.value || '').trim();
+                if (!searchTerm) {
+                    filtered = filteredBase.slice();
+                } else {
+                    const q = searchTerm.toLowerCase();
+                    filtered = filteredBase.filter(p => (p.contents||'').toLowerCase().includes(q));
+                }
+                currentPage = 1;
+                renderPostsPage(currentPage);
+            });
 
             const scrollTopBtn = document.getElementById('scrollToTopBtn');
             window.addEventListener('scroll', () => {

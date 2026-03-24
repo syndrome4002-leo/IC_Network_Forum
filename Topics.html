@@ -37,6 +37,9 @@
             <div>
                 <div class="title" id="pageTitle">Topics</div>
                 <div class="meta" id="pageSub">Loading...</div>
+                <div style="margin-top:8px;width:100%;">
+                    <input id="searchInput" placeholder="Search topics by title..." style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px" />
+                </div>
             </div>
             <div>
                 <a class="back" href="index.html">← Back to forums</a>
@@ -63,6 +66,8 @@
             let subForums = [];
             let forums = [];
             let filtered = [];
+            let filteredBase = [];
+            let searchQuery = '';
             let pageSize = pageSizeDefault;
             let currentPage = parseInt(params.get('page')||'1', 10) || 1;
 
@@ -220,6 +225,9 @@
                     const qsPageSize = parseInt(params.get('page_size')||'',10);
                     if (qsPageSize) pageSize = qsPageSize;
 
+                    // keep a master copy before search filtering
+                    filteredBase = filtered.slice();
+
                     loadingEl.style.display = 'none';
                     if (filtered.length===0) {
                         renderEmpty('No topics found for this forum/subforum.');
@@ -239,6 +247,19 @@
             }
 
             loadData();
+
+            // search handling
+            const searchInputEl = document.getElementById('searchInput');
+            searchInputEl.addEventListener('input', () => {
+                searchQuery = (searchInputEl.value || '').trim().toLowerCase();
+                if (!searchQuery) {
+                    filtered = filteredBase.slice();
+                } else {
+                    filtered = filteredBase.filter(t => (t.title||'').toLowerCase().includes(searchQuery));
+                }
+                currentPage = 1;
+                renderTopicsPage(currentPage);
+            });
 
             const scrollTopBtn = document.getElementById('scrollToTopBtn');
             window.addEventListener('scroll', () => {

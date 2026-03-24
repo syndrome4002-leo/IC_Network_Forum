@@ -238,6 +238,9 @@
         <div class="header">
             <h1>IC Network Forum Directory</h1>
             <p>Explore all forums and sub-forums in the Interstitial Cystitis community</p>
+            <div style="margin-top:12px;width:100%;">
+                <input id="searchInput" placeholder="Search forums by title..." style="width:100%;padding:8px;border:1px solid #e5e7eb;border-radius:8px" />
+            </div>
         </div>
 
         <div id="loading" class="loading">
@@ -304,15 +307,25 @@
             }
         }
 
+        let searchQuery = '';
         function renderForums() {
             const list = document.getElementById('forumsList');
             list.innerHTML = '';
 
-            forums.forEach((forum, idx) => {
+            const items = searchQuery ? forums.filter(f => (f.title||'').toLowerCase().includes(searchQuery)) : forums;
+            if (items.length === 0) {
+                const no = document.createElement('div');
+                no.className = 'no-subforums';
+                no.innerHTML = `No forums found matching "${searchQuery}"`;
+                list.appendChild(no);
+                return;
+            }
+
+            items.forEach((forum, idx) => {
                 const item = createForumItem(forum);
                 list.appendChild(item);
                 // add divider between forums (except after last)
-                if (idx < forums.length - 1) {
+                if (idx < items.length - 1) {
                     const divider = document.createElement('div');
                     divider.className = 'forum-divider';
                     list.appendChild(divider);
@@ -429,6 +442,13 @@
 
         // Load data when page loads
         loadData();
+
+        // wire up search
+        const searchInputEl = document.getElementById('searchInput');
+        searchInputEl.addEventListener('input', () => {
+            searchQuery = (searchInputEl.value || '').trim().toLowerCase();
+            renderForums();
+        });
     </script>
 </body>
 </html>
