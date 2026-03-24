@@ -86,6 +86,20 @@
         .forum-icon svg { fill: #2b6cb0; }
         .subforum-icon svg { fill: #667eea; }
         .avatar{width:28px;height:28px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-right:8px;font-size:0.78rem;flex:0 0 28px}
+        .category-header { display:flex; align-items:center; justify-content:space-between; padding:10px 12px; margin-top:18px; background:#f8fafc; border:1px solid #e5e7eb; border-radius:8px; font-weight:700; color:#1f2937; }
+        .category-title { font-size:1rem; }
+        .category-header button.category-toggle-btn { width:28px; height:28px; border:none; background:#2b6cb0; color:#fff; border-radius:50%; font-size:1rem; line-height:1; cursor:pointer; }
+        .category-content {
+            overflow: hidden;
+            max-height: 9999px;
+            opacity: 1;
+            transition: max-height 0.25s ease, opacity 0.25s ease;
+        }
+        .category-content.collapsed {
+            max-height: 0;
+            opacity: 0;
+        }
+        .category-content { margin-top:10px; }
 
         .forum-content {
             padding: 8px 0 18px 0;
@@ -279,16 +293,29 @@
         });
         let subForums = [];
         let forumSubForumsMap = {};
+        let categories = [];
+        let categoryMap = {};
+        let groupExpanded = {};
 
         async function loadData() {
             try {
-                const [forumsResponse, subForumsResponse] = await Promise.all([
+                const [forumsResponse, subForumsResponse, categoriesResponse] = await Promise.all([
                     fetch('Data/forum.json'),
-                    fetch('Data/sub-forum.json')
+                    fetch('Data/sub-forum.json'),
+                    fetch('Data/categories.json')
                 ]);
 
                 forums = await forumsResponse.json();
                 subForums = await subForumsResponse.json();
+                categories = await categoriesResponse.json();
+                categoryMap = (categories || []).reduce((acc, c) => {
+                    acc[c.id] = c.text || `Category ${c.id}`;
+                    return acc;
+                }, {});
+                groupExpanded = (categories || []).reduce((acc, c) => {
+                    acc[c.id] = true;
+                    return acc;
+                }, {});
 
                 // Group sub-forums by parent forum
                 forumSubForumsMap = {};
@@ -395,22 +422,73 @@
                 return subs.some(s => (s.title||'').toLowerCase().includes(searchQuery));
             }) : forums;
             if (items.length === 0) {
-                // hide global loading if present
                 const loadingEl = document.getElementById('loading');
                 if (loadingEl) loadingEl.style.display = 'none';
                 list.innerHTML = noFoundHtml(searchQueryRaw ? `No forums found matching "${searchQueryRaw}"` : 'No forums found');
                 return;
             }
 
-            items.forEach((forum, idx) => {
-                const item = createForumItem(forum);
-                list.appendChild(item);
-                // add divider between forums (except after last)
-                if (idx < items.length - 1) {
-                    const divider = document.createElement('div');
-                    divider.className = 'forum-divider';
-                    list.appendChild(divider);
+            // additional grouping by cate_id
+            const groups = items.reduce((acc, forum) => {
+                const cat = (forum.cate_id != null ? forum.cate_id : 0);
+                if (!acc[cat]) acc[cat] = [];
+                acc[cat].push(forum);
+                return acc;
+            }, {});
+
+            const sortedGroupIds = Object.keys(groups).map(id=>parseInt(id,10)).sort((a,b)=>a-b);
+
+            sortedGroupIds.forEach((catId, groupIndex) => {
+                const groupForums = groups[catId];
+                const header = document.createElement('div');
+                header.className = 'category-header';
+                header.dataset.categoryId = catId;
+                const titleSpan = document.createElement('span');
+                titleSpan.className = 'category-title';
+                titleSpan.textContent = `${categoryMap[catId] || `Category ${catId}`} (${groupForums.length})`;
+                const toggle = document.createElement('button');
+                toggle.className = 'category-toggle-btn';
+                toggle.type = 'button';
+                toggle.textContent = groupExpanded[catId] ? '−' : '+';
+                toggle.addEventListener('click', () => {
+                    groupExpanded[catId] = !groupExpanded[catId];
+                    content.classList.toggle('collapsed', !groupExpanded[catId]);
+                    toggledUpdate();
+                });
+
+                function toggledUpdate(){
+                    toggle.textContent = groupExpanded[catId] ? '−' : '+';
+                    if (groupExpanded[catId]) {
+                        content.style.maxHeight = content.scrollHeight + 'px';
+                    } else {
+                        content.style.maxHeight = '0';
+                    }
                 }
+
+                header.appendChild(titleSpan);
+                header.appendChild(toggle);
+
+                const content = document.createElement('div');
+                content.className = 'category-content';
+                if (!groupExpanded[catId]) {
+                    content.classList.add('collapsed');
+                    content.style.maxHeight = '0';
+                } else {
+                    content.style.maxHeight = '9999px';
+                }
+
+                groupForums.forEach((forum, idx) => {
+                    const item = createForumItem(forum);
+                    content.appendChild(item);
+                    if (idx < groupForums.length - 1) {
+                        const divider = document.createElement('div');
+                        divider.className = 'forum-divider';
+                        content.appendChild(divider);
+                    }
+                });
+
+                list.appendChild(header);
+                list.appendChild(content);
             });
         }
 
