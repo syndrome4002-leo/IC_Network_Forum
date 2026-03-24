@@ -81,6 +81,10 @@
             flex: 1;
             line-height: 1.25;
         }
+        .forum-title, .sub-forum-title { display:flex; align-items:center; gap:8px; }
+        .forum-title .icon, .sub-forum-title .icon { width:18px; height:18px; flex:0 0 18px; display:inline-flex; align-items:center; justify-content:center }
+        .forum-icon svg { fill: #2b6cb0; }
+        .subforum-icon svg { fill: #667eea; }
 
         .forum-content {
             padding: 8px 0 18px 0;
@@ -370,8 +374,9 @@
                     displayTitle = displayTitle.replace(re, '<mark>$&</mark>');
                 } catch (e) {}
             }
+            const forumIcon = `<span class="icon forum-icon"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path d="M4 4h12v8h4v6H4z"/></svg></span>`;
             header.innerHTML = `
-                <div class="forum-title">${displayTitle}</div>
+                <div class="forum-title">${forumIcon}${displayTitle}</div>
                 <div style="text-align:right;">
                     <div style="font-size:0.95rem;">${(forum.topics||0).toLocaleString()} topics</div>
                     <div style="font-size:0.85rem; opacity:0.9;">${(forum.posts||0).toLocaleString()} posts</div>
@@ -415,9 +420,10 @@
                                                 subTitle = subTitle.replace(re, '<mark>$&</mark>');
                                             } catch (e) {}
                                         }
+                                        const subIcon = `<span class="icon subforum-icon"><svg viewBox="0 0 24 24" width="18" height="18" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h7l2 2h9v9a2 2 0 0 1-2 2H3z"/></svg></span>`;
                                         const btn = `<button class="sub-open-btn" data-sub-id="${s.id}" data-forum-id="${s.forum_id}">Open Sub Forum</button>`;
                                         row.innerHTML = `
-                                                <div class="sub-forum-title">${subTitle}</div>
+                                                <div class="sub-forum-title">${subIcon}${subTitle}</div>
                                                 <div style="display:flex;gap:12px;align-items:center;">
                                                     <div class="sub-forum-counts">${s.counts || ''}</div>
                                                     ${btn}
