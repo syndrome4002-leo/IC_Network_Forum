@@ -20,6 +20,7 @@
         .post-content.expanded{max-height:none;}
         .read-more{display:inline-block;margin-top:8px;font-size:0.86rem;color:#2b6cb0;cursor:pointer;text-decoration:underline}
         .post-signature{margin-top:10px;color:#475569;font-size:0.86rem;border-top:1px solid #f3f4f6;padding-top:10px}
+        .avatar{width:34px;height:34px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:700;margin-right:8px;font-size:0.9rem;flex:0 0 34px}
         .pagination{display:flex;gap:8px;align-items:center;justify-content:center;padding:16px 0}
         .page-btn{background:#fff;border:1px solid #e5e7eb;padding:6px 10px;border-radius:6px;cursor:pointer}
         .page-btn.active{background:#2b6cb0;color:#fff;border-color:#2b6cb0}
@@ -105,10 +106,17 @@
 
                     const header = document.createElement('div');
                     header.className = 'post-header';
+                    const authorName = p.post_by || 'Unknown';
+                    const avatarHtml = generateAvatarHtml(authorName);
                     header.innerHTML = `
                         <div>
-                            <div class="post-author">${escapeHtml(p.post_by || 'Unknown')}</div>
-                            <div class="post-meta">${escapeHtml(p.post_at || 'Unknown date')}</div>
+                            <div style="display:flex;align-items:center;gap:8px">
+                                ${avatarHtml}
+                                <div>
+                                    <div class="post-author">${escapeHtml(authorName)}</div>
+                                    <div class="post-meta">${escapeHtml(p.post_at || 'Unknown date')}</div>
+                                </div>
+                            </div>
                         </div>
                         <div class="post-meta">Post #${start + pageItems.indexOf(p) + 1}</div>
                     `;
@@ -234,6 +242,20 @@
                         </svg>
                         <div style="margin-top:12px;color:#6b7280">${(msg||'')}</div>
                     </div>`;
+            }
+
+            // avatar helpers: deterministic color per name
+            function stringToHue(s){
+                let h=0;
+                for(let i=0;i<s.length;i++){ h = (h<<5) - h + s.charCodeAt(i); h |= 0; }
+                return Math.abs(h) % 360;
+            }
+            function generateAvatarHtml(name){
+                const n = (name||'').trim();
+                const initial = n ? escapeHtml(n[0].toUpperCase()) : '?';
+                const hue = stringToHue(n || 'unknown');
+                const color = `hsl(${hue} 65% 45%)`;
+                return `<span class="avatar" style="background:${color}">${initial}</span>`;
             }
 
             async function loadData(){
